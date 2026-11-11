@@ -14,3 +14,8 @@ __pycache__/
 
 # Electron cache
 desktop/.electron-data/
+
+# SQLite local db
+leads.db
+*.db
+*.sqlite3
