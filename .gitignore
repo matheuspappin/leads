@@ -11,3 +11,6 @@ build/
 __pycache__/
 .claude-tmp/
 
+
+# Electron cache
+desktop/.electron-data/
