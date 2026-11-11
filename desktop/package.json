@@ -1,0 +1,31 @@
+{
+  "name": "lead-hunter-desktop",
+  "version": "1.0.0",
+  "description": "Lead Hunter Desktop App using Playwright",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder build --win"
+  },
+  "author": "Lead Hunter",
+  "license": "ISC",
+  "build": {
+    "appId": "com.leadhunter.desktop",
+    "productName": "Lead Hunter",
+    "win": {
+      "target": "nsis"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^18.0.2",
+    "playwright": "^1.63.0"
+  },
+  "devDependencies": {
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3"
+  }
+}

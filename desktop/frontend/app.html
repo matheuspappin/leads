@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lead Hunter Desktop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="../node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script>
+  <style>
+    /* Desktop-specific overrides to make renderer.js logic work with new Web CSS */
+    .auth-overlay {
+      display: flex;
+      position: fixed;
+      inset: 0;
+      background: var(--bg-dark);
+      z-index: 1000;
+    }
+    .auth-overlay.hidden {
+      display: none !important;
+    }
+    .app-layout {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app-layout.hidden {
+      display: none !important;
+    }
+    .panel {
+      display: none;
+    }
+    .panel.active {
+      display: block;
+    }
+    .panel:not(.hidden) {
+      display: block;
+    }
+    .panel.hidden {
+      display: none !important;
+    }
+    .status-bar {
+      margin-top: 20px;
+      text-align: center;
+      color: var(--accent-teal);
+    }
+    .status-bar.hidden {
+      display: none !important;
+    }
+    .sidebar-nav .nav-item.active {
+      background: var(--bg-card);
+      color: var(--accent-teal);
+    }
+  </style>
+</head>
+<body>
+<!-- LOGIN CONTAINER -->
+<div class="auth-overlay" id="login-container">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-text">LEAD<strong>HUNTER</strong></span>
+    </div>
+    
+    <div class="auth-tabs">
+      <a href="#" class="auth-tab active">Acesso ao Desktop</a>
+    </div>
+
+    <form id="login-form" class="auth-form" onsubmit="event.preventDefault();">
+      <div class="auth-form-group">
+        <label class="auth-label" for="email">E-mail</label>
+        <div class="auth-input-wrap">
+          <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <input type="email" id="email" class="auth-input" placeholder="seu@email.com" required />
+        </div>
+      </div>
+      <div class="auth-form-group">
+        <label class="auth-label" for="password">Senha</label>
+        <div class="auth-input-wrap">
+          <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="password" class="auth-input" placeholder="••••••••" required />
+          <button type="button" class="toggle-pw" id="toggle-password" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="auth-error" id="login-error"></div>
+      <button type="submit" class="auth-btn" id="login-btn">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP CONTENT -->
+<div class="app-layout hidden" id="app-container">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-text">LEAD<strong>HUNTER</strong></span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="nav-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Nova Busca
+      </button>
+      <button class="nav-item" id="nav-history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4"/><polyline points="3 3 3 7 7 7"/></svg>
+        Histórico
+      </button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-item">
+        <span class="stat-val" id="total-leads-stat">0</span>
+        <span class="stat-label">Total de Leads</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-val" id="total-searches-stat">0</span>
+        <span class="stat-label">Buscas Salvas</span>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-teal); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff;">U</div>
+      <div class="user-info" style="display:flex; flex-direction:column; margin-left: 10px;">
+        <div class="user-email" id="user-email" style="font-size:12px; color: #fff;">Carregando...</div>
+        <div class="user-actions" style="margin-top:5px;">
+          <button class="user-action-btn logout" id="logout-btn" style="background: transparent; border:none; color: var(--danger); cursor:pointer; font-size:12px; padding:0;">
+            Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="main">
+    <header class="top-bar">
+      <div class="top-bar-title" id="top-bar-title">Nova Busca</div>
+    </header>
+
+    <!-- SEARCH PANEL -->
+    <section class="panel active" id="view-search">
+      <div class="hero">
+        <h1 class="hero-title">Encontre seus próximos <span class="gradient-text">clientes ideais.</span></h1>
+        <p class="hero-sub">Busque empresas locais por nicho e cidade. Receba score de oportunidade automático e exporte para CSV.</p>
+      </div>
+
+      <div class="search-card">
+        <form class="search-form" id="search-form">
+          <div class="form-row">
+            <div class="input-group">
+              <label class="input-label" for="query">Nicho / Segmento</label>
+              <div class="input-wrap">
+                <input type="text" id="query" class="input-field" placeholder="Ex: Clínicas de Estética..." required />
+              </div>
+            </div>
+            <div class="input-group">
+              <label class="input-label" for="city">Cidade</label>
+              <div class="input-wrap">
+                <input type="text" id="city" class="input-field" placeholder="Ex: São Paulo..." required />
+              </div>
+            </div>
+            <div class="input-group" style="flex: 0.5;">
+              <label class="input-label" for="max-leads">Qtd. Máx</label>
+              <div class="input-wrap">
+                <input type="number" id="max-leads" class="input-field" value="60" min="1" max="500" required />
+              </div>
+            </div>
+          </div>
+
+          <div class="search-filters-wrap">
+            <div class="search-filters-header">
+              <span class="search-filters-title">Filtros da Busca:</span>
+              <span style="font-size:0.65rem; color:var(--text-muted);">(Filtre os estabelecimentos antes de iniciar a extração — múltiplos filtros de site são combinados com OU)</span>
+            </div>
+            <div class="search-filters-grid">
+              <label class="filter-toggle-pill" id="label-pre-no-site" title="Busca empresas que NÃO possuem nenhum site (nem rede social)">
+                <input type="checkbox" id="filter-pre-no-site" />
+                <span>🚫 Sem Site</span>
+              </label>
+              <label class="filter-toggle-pill" id="label-pre-social" title="Busca empresas que usam Instagram, Facebook ou Linktree como site">
+                <input type="checkbox" id="filter-pre-social" />
+                <span>📸 Rede Social / Linktree</span>
+              </label>
+              <label class="filter-toggle-pill" id="label-pre-free-builder" title="Busca empresas com site em construtor gratuito: Netlify, Canva, Wix, Webnode, Blogspot, Google Sites...">
+                <input type="checkbox" id="filter-pre-free-builder" />
+                <span>🔨 Construtor Gratuito</span>
+              </label>
+              <label class="filter-toggle-pill" id="label-pre-directory" title="Busca empresas listadas em diretórios: Doctoralia, Apontador, TripAdvisor, iFood, Yelp...">
+                <input type="checkbox" id="filter-pre-directory" />
+                <span>📋 Listado em Diretório</span>
+              </label>
+              <label class="filter-toggle-pill" id="label-pre-site-offline" title="Busca empresas cujo site está offline (erro 404 ou 5xx)">
+                <input type="checkbox" id="filter-pre-site-offline" />
+                <span>💀 Site Offline</span>
+              </label>
+              <label class="filter-toggle-pill" id="label-pre-no-phone" title="Busca apenas empresas sem telefone">
+                <input type="checkbox" id="filter-pre-no-phone" />
+                <span>📵 Sem Telefone</span>
+              </label>
+              <label class="filter-toggle-pill" id="label-pre-require-phone" title="Ignora empresas sem telefone/WhatsApp">
+                <input type="checkbox" id="filter-pre-require-phone" />
+                <span>📞 Exigir WhatsApp / Tel.</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-search" id="search-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span style="margin-left:8px;">Buscar Leads</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="status-bar hidden" id="status-bar">
+        <div class="loading-ring" style="width:20px;height:20px;display:inline-block;vertical-align:middle;margin-right:10px;"></div>
+        <span class="loading-text" id="status-text" style="display:inline-block;vertical-align:middle;">Buscando empresas...</span>
+      </div>
+
+      <div class="results-header" style="margin-top: 30px;">
+        <div class="results-meta">
+          <h2 class="results-title" id="current-query-text">Resultados</h2>
+          <span class="results-badge" id="results-count">0</span>
+        </div>
+        <div class="results-actions">
+          <div class="filter-group">
+            <button class="filter-btn active filter-pill" data-filter="all">Todos</button>
+            <button class="filter-btn filter-pill" data-filter="nosite">Sem Site</button>
+            <button class="filter-btn filter-pill" data-filter="social">📸 Social</button>
+            <button class="filter-btn filter-pill" data-filter="freebuilder">🔨 Construtor</button>
+            <button class="filter-btn filter-pill" data-filter="directory">📋 Diretório</button>
+            <button class="filter-btn filter-pill" data-filter="siteoffline">💀 Site Offline</button>
+            <button class="filter-btn filter-pill" data-filter="nophone">Sem Tel.</button>
+            <button class="filter-btn filter-pill" data-filter="lowscore">Nota Baixa</button>
+            <button class="filter-btn filter-pill" data-filter="noreviews">Sem Avaliações</button>
+            <button class="filter-btn filter-pill" data-filter="highopportunity">⚡ Alta Oportunidade</button>
+          </div>
+          <button class="btn-export" id="export-btn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="sort-bar">
+        <span class="sort-label">Ordenar por:</span>
+        <button class="sort-btn active sort-item" data-sort="score">Score ↓</button>
+        <button class="sort-btn sort-item" data-sort="rating">Nota</button>
+        <button class="sort-btn sort-item" data-sort="reviews">Reviews</button>
+        <button class="sort-btn sort-item" data-sort="name">Nome</button>
+      </div>
+
+      <div class="table-wrap" style="height: 400px; overflow-y: auto;">
+        <table class="leads-table">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>Contato</th>
+              <th>Avaliação</th>
+              <th>Score</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="leads-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- HISTORY PANEL -->
+    <section class="panel hidden" id="view-history">
+      <div class="hero" style="padding-bottom:0">
+        <h1 class="hero-title" style="font-size:2rem">Histórico de Buscas</h1>
+        <p class="hero-sub">Todas as suas buscas salvas na sua conta</p>
+      </div>
+      <div class="history-list" id="history-body" style="padding: 30px;">
+        <div class="empty-state">
+          <h3>Carregando histórico...</h3>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+  <div class="modal" id="lead-modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>

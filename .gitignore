@@ -1,0 +1,13 @@
+﻿.vercel
+.env
+!.env.example*
+
+# === Adicionado automaticamente ===
+node_modules/
+.next/
+.godot/
+dist/
+build/
+__pycache__/
+.claude-tmp/
+
